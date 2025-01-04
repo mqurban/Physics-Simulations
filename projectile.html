@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Projectile Motion Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .simulation-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            max-width: 100%;
+            margin: 0 auto;
+            overflow-x: hidden;
+            padding: 0 20px;
+        }
+        .canvas-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .controls-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .parameter-display {
+            font-family: monospace;
+            margin-left: 10px;
+            color: #666;
+        }
+        .control-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.reset {
+            background-color: #2196F3;
+        }
+        #canvas {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .home-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .formulas-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .formula-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .formula-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .formula-card h4 {
+            margin: 0 0 10px 0;
+            color: #2196F3;
+        }
+        
+        .formula {
+            font-family: monospace;
+            font-size: 16px;
+            margin-bottom: 8px;
+            padding: 5px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .description {
+            font-size: 14px;
+            color: #666;
+        }
+        .graphs-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .graph-wrapper {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .graph-title {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="simulation-container">
+        <div class="canvas-container">
+            <a href="index.html" class="home-link">← Back to Home</a>
+            <canvas id="canvas" width="800" height="400"></canvas>
+            
+            <div class="graphs-container">
+                <div class="graph-wrapper">
+                    <canvas id="velocityGraph" width="350" height="250"></canvas>
+                    <div class="graph-title">Velocity Components vs Time</div>
+                </div>
+                <div class="graph-wrapper">
+                    <canvas id="energyGraph" width="350" height="250"></canvas>
+                    <div class="graph-title">Energy Distribution</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-container">
+            <h2>Projectile Controls</h2>
+            <div class="input-group">
+                <label for="angle">
+                    Launch Angle (θ)
+                    <span class="parameter-display" id="angleValue">45°</span>
+                </label>
+                <input type="range" id="angle" min="0" max="90" step="1" value="45">
+            </div>
+
+            <div class="input-group">
+                <label for="velocity">
+                    Initial Velocity (v₀)
+                    <span class="parameter-display" id="velocityValue">20 m/s</span>
+                </label>
+                <input type="range" id="velocity" min="1" max="50" step="1" value="20">
+            </div>
+
+            <div class="control-buttons">
+                <button id="launch">Launch</button>
+                <button id="pauseResume" class="pause">Pause</button>
+                <button id="reset" class="reset">Reset</button>
+            </div>
+
+            <div class="formulas-section">
+                <h3>Key Formulas</h3>
+                <div class="formula-grid">
+                    <div class="formula-card">
+                        <h4>Position Equations</h4>
+                        <div class="formula">x = v₀cosθ × t</div>
+                        <div class="formula">y = v₀sinθ × t - ½gt²</div>
+                        <div class="description">v₀ is initial velocity, θ is launch angle, t is time, g is gravity (9.81 m/s²)</div>
+                    </div>
+                    
+                    <div class="formula-card">
+                        <h4>Maximum Height</h4>
+                        <div class="formula">h_max = (v₀sinθ)² / 2g</div>
+                        <div class="description">Maximum height reached by projectile</div>
+                    </div>
+                    
+                    <div class="formula-card">
+                        <h4>Range</h4>
+                        <div class="formula">R = (v₀² × sin2θ) / g</div>
+                        <div class="description">Total horizontal distance traveled</div>
+                    </div>
+                    
+                    <div class="formula-card">
+                        <h4>Time of Flight</h4>
+                        <div class="formula">T = (2v₀sinθ) / g</div>
+                        <div class="description">Total time in air</div>
+                    </div>
+
+                    <div class="formula-card">
+                        <h4>Velocity Components</h4>
+                        <div class="formula">vₓ = v₀cosθ</div>
+                        <div class="formula">vᵧ = v₀sinθ - gt</div>
+                        <div class="description">Horizontal velocity remains constant, vertical velocity changes with time</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Projectile {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.width = canvas.width;
+                this.height = canvas.height;
+                this.g = 9.81; // Gravity
+                this.projectileRadius = 15;
+                this.maxHeight = 0;
+                this.maxDistance = 0;
+                this.isPaused = false;
+                
+                // Calculate viewport scaling based on initial parameters
+                this.updateViewportScale();
+                
+                // Initialize starting position
+                this.x = 50; // Start a bit away from the left edge
+                this.y = this.height - this.projectileRadius; // Start at ground level
+                
+                this.reset();
+                
+                // Setup velocity graph
+                this.velocityGraphCanvas = document.getElementById('velocityGraph');
+                this.velocityGraphCtx = this.velocityGraphCanvas.getContext('2d');
+                
+                // Setup energy graph
+                this.energyGraphCanvas = document.getElementById('energyGraph');
+                this.energyGraphCtx = this.energyGraphCanvas.getContext('2d');
+                
+                // Data arrays for graphs
+                this.timePoints = [];
+                this.vxPoints = [];
+                this.vyPoints = [];
+            }
+
+            updateViewportScale() {
+                const angle = parseFloat(document.getElementById('angle').value) * Math.PI / 180;
+                const velocity = parseFloat(document.getElementById('velocity').value);
+                
+                // Calculate maximum theoretical range and height
+                const maxRange = (velocity * velocity * Math.sin(2 * angle)) / this.g;
+                const maxHeight = (velocity * velocity * Math.sin(angle) * Math.sin(angle)) / (2 * this.g);
+                
+                // Add 10% margin
+                const totalRange = maxRange * 1.1;
+                const totalHeight = maxHeight * 1.1;
+                
+                // Calculate pixels per meter to fit the path
+                const horizontalScale = (this.width - 100) / totalRange;
+                const verticalScale = (this.height - 100) / totalHeight;
+                
+                // Use the smaller scale to maintain aspect ratio
+                this.pixelsPerMeter = Math.min(horizontalScale, verticalScale);
+            }
+
+            reset() {
+                this.angle = parseFloat(document.getElementById('angle').value) * Math.PI / 180;
+                this.velocity = parseFloat(document.getElementById('velocity').value);
+                this.updateViewportScale(); // Update scale when parameters change
+                this.time = 0;
+                this.x = 50;
+                this.y = this.height - this.projectileRadius;
+                this.isLaunched = false;
+                this.trajectory = [];
+                this.maxHeight = 0;
+                this.maxDistance = 0;
+                this.timePoints = [];
+                this.vxPoints = [];
+                this.vyPoints = [];
+                this.draw();
+            }
+
+            launch() {
+                this.isLaunched = true;
+                this.update();
+            }
+
+            update() {
+                if (this.isLaunched && !this.isPaused) {
+                    this.time += 0.016;
+                    
+                    // Calculate actual position in meters
+                    const distanceInMeters = this.velocity * Math.cos(this.angle) * this.time;
+                    const heightInMeters = this.velocity * Math.sin(this.angle) * this.time - 0.5 * this.g * this.time * this.time;
+                    
+                    // Convert to pixels
+                    this.x = 50 + distanceInMeters * this.pixelsPerMeter;
+                    this.y = this.height - heightInMeters * this.pixelsPerMeter - this.projectileRadius;
+
+                    if (heightInMeters < 0) {
+                        this.y = this.height - this.projectileRadius;
+                        this.isLaunched = false;
+                    } else {
+                        this.trajectory.push({ x: this.x, y: this.y });
+                    }
+
+                    // Store data for graphs
+                    const vx = this.velocity * Math.cos(this.angle);
+                    const vy = this.velocity * Math.sin(this.angle) - this.g * this.time;
+                    
+                    this.timePoints.push(this.time);
+                    this.vxPoints.push(vx);
+                    this.vyPoints.push(vy);
+
+                    // Draw graphs
+                    this.drawVelocityGraph();
+                    this.drawEnergyGraph();
+                }
+                this.draw();
+                if (this.isLaunched && !this.isPaused) {
+                    requestAnimationFrame(() => this.update());
+                }
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                
+                // Draw grid
+                this.drawGrid();
+                
+                // Draw axes with labels
+                this.drawAxes();
+                
+                // Draw ground
+                this.ctx.fillStyle = '#8BC34A';
+                this.ctx.fillRect(0, this.height - 10, this.width, 10);
+
+                // Draw trajectory with dots
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = 'rgba(33, 150, 243, 0.4)';
+                this.ctx.lineWidth = 3;
+                this.trajectory.forEach((point, index) => {
+                    // Draw trajectory line
+                    if (index === 0) {
+                        this.ctx.moveTo(point.x, point.y);
+                    } else {
+                        this.ctx.lineTo(point.x, point.y);
+                    }
+                    
+                    // Draw dots along trajectory
+                    if (index % 5 === 0) {
+                        this.ctx.save();
+                        this.ctx.beginPath();
+                        this.ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
+                        this.ctx.fillStyle = '#1976D2';
+                        this.ctx.fill();
+                        this.ctx.restore();
+                    }
+                });
+                this.ctx.stroke();
+
+                // Draw projectile with gradient
+                const gradient = this.ctx.createRadialGradient(
+                    this.x - this.projectileRadius/3, 
+                    this.y - this.projectileRadius/3, 
+                    this.projectileRadius/10,
+                    this.x, 
+                    this.y, 
+                    this.projectileRadius
+                );
+                gradient.addColorStop(0, '#FF7043');
+                gradient.addColorStop(1, '#E64A19');
+
+                this.ctx.beginPath();
+                this.ctx.arc(this.x, this.y, this.projectileRadius, 0, 2 * Math.PI);
+                this.ctx.fillStyle = gradient;
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#BF360C';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+
+                // Draw velocity vector
+                if (this.isLaunched) {
+                    const velocityX = this.velocity * Math.cos(this.angle);
+                    const velocityY = this.velocity * Math.sin(this.angle) - this.g * this.time;
+                    const speed = Math.sqrt(velocityX ** 2 + velocityY ** 2);
+                    const vectorAngle = Math.atan2(-velocityY, velocityX);
+                    
+                    this.drawVector(this.x, this.y, vectorAngle, speed * 2);
+                }
+
+                // Draw live data
+                this.drawLiveData();
+            }
+
+            drawGrid() {
+                const gridSize = 50;
+                this.ctx.strokeStyle = '#f0f0f0';
+                this.ctx.lineWidth = 1;
+
+                // Vertical lines
+                for (let x = 0; x < this.width; x += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.height);
+                    this.ctx.stroke();
+                }
+
+                // Horizontal lines
+                for (let y = 0; y < this.height; y += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.width, y);
+                    this.ctx.stroke();
+                }
+            }
+
+            drawAxes() {
+                this.ctx.strokeStyle = '#666';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                
+                // X-axis
+                this.ctx.moveTo(0, this.height - 10);
+                this.ctx.lineTo(this.width, this.height - 10);
+                
+                // Y-axis
+                this.ctx.moveTo(50, this.height);
+                this.ctx.lineTo(50, 0);
+                this.ctx.stroke();
+
+                // Draw axis labels
+                this.ctx.fillStyle = '#666';
+                this.ctx.font = '12px Arial';
+                
+                // X-axis labels (distance)
+                for (let x = 50; x <= this.width; x += this.pixelsPerMeter * 5) {
+                    const meters = ((x - 50) / this.pixelsPerMeter).toFixed(0);
+                    this.ctx.fillText(`${meters}m`, x, this.height - 20);
+                }
+                
+                // Y-axis labels (height)
+                for (let y = this.height - this.projectileRadius; y > 0; y -= this.pixelsPerMeter * 2) {
+                    const meters = ((this.height - this.projectileRadius - y) / this.pixelsPerMeter).toFixed(1);
+                    if (meters > 0) {
+                        this.ctx.fillText(`${meters}m`, 5, y);
+                    }
+                }
+            }
+
+            drawVector(x, y, angle, magnitude) {
+                const vectorLength = magnitude * 3;
+                const arrowSize = 10;
+
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y);
+                this.ctx.lineTo(
+                    x + vectorLength * Math.cos(angle),
+                    y + vectorLength * Math.sin(angle)
+                );
+                this.ctx.strokeStyle = '#FF5722';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+
+                // Draw arrowhead
+                this.ctx.beginPath();
+                this.ctx.moveTo(
+                    x + vectorLength * Math.cos(angle),
+                    y + vectorLength * Math.sin(angle)
+                );
+                this.ctx.lineTo(
+                    x + (vectorLength - arrowSize) * Math.cos(angle) + arrowSize * Math.cos(angle + Math.PI*2/3),
+                    y + (vectorLength - arrowSize) * Math.sin(angle) + arrowSize * Math.sin(angle + Math.PI*2/3)
+                );
+                this.ctx.lineTo(
+                    x + (vectorLength - arrowSize) * Math.cos(angle) + arrowSize * Math.cos(angle - Math.PI*2/3),
+                    y + (vectorLength - arrowSize) * Math.sin(angle) + arrowSize * Math.sin(angle - Math.PI*2/3)
+                );
+                this.ctx.closePath();
+                this.ctx.fillStyle = '#FF5722';
+                this.ctx.fill();
+            }
+
+            drawLiveData() {
+                const velocityX = this.velocity * Math.cos(this.angle);
+                const velocityY = this.velocity * Math.sin(this.angle) - this.g * this.time;
+                const speed = Math.sqrt(velocityX ** 2 + velocityY ** 2);
+                const height = (this.height - this.y - this.projectileRadius) / this.pixelsPerMeter;
+                const distance = (this.x - 50) / this.pixelsPerMeter;
+
+                // Update max values
+                this.maxHeight = Math.max(this.maxHeight, height);
+                this.maxDistance = Math.max(this.maxDistance, distance);
+
+                const data = [
+                    { label: 'Height', value: `${height.toFixed(1)} m` },
+                    { label: 'Max Height', value: `${this.maxHeight.toFixed(1)} m` },
+                    { label: 'Distance', value: `${distance.toFixed(1)} m` },
+                    { label: 'Speed', value: `${speed.toFixed(1)} m/s` },
+                    { label: 'Time', value: `${this.time.toFixed(2)} s` },
+                    { label: 'Vx', value: `${velocityX.toFixed(1)} m/s` },
+                    { label: 'Vy', value: `${-velocityY.toFixed(1)} m/s` }
+                ];
+
+                // Draw data box
+                const boxWidth = 150;
+                const boxHeight = (data.length + 1) * 20;
+                const padding = 10;
+                const boxX = this.width - boxWidth - padding;
+                const boxY = padding;
+
+                // Draw semi-transparent background
+                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                this.ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+                this.ctx.strokeStyle = '#ccc';
+                this.ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+
+                // Draw data
+                this.ctx.font = '14px Arial';
+                this.ctx.fillStyle = '#000';
+                data.forEach((item, i) => {
+                    this.ctx.fillText(
+                        `${item.label}: ${item.value}`,
+                        boxX + 10,
+                        boxY + 20 * (i + 1)
+                    );
+                });
+            }
+
+            togglePause() {
+                this.isPaused = !this.isPaused;
+                if (!this.isPaused && this.isLaunched) {
+                    this.update();
+                }
+            }
+
+            drawVelocityGraph() {
+                const ctx = this.velocityGraphCtx;
+                const width = this.velocityGraphCanvas.width;
+                const height = this.velocityGraphCanvas.height;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Draw background grid
+                ctx.strokeStyle = '#f0f0f0';
+                ctx.lineWidth = 1;
+                for(let i = 0; i < width; i += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, height);
+                    ctx.stroke();
+                }
+                for(let i = 0; i < height; i += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i);
+                    ctx.lineTo(width, i);
+                    ctx.stroke();
+                }
+                
+                // Draw axes
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(50, height/2);  // x-axis
+                ctx.lineTo(width - 10, height/2);
+                ctx.moveTo(50, 10);  // y-axis
+                ctx.lineTo(50, height - 10);
+                ctx.stroke();
+                
+                // Add labels
+                ctx.fillStyle = '#666';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillText('Velocity (m/s)', 45, 20);
+                ctx.textAlign = 'center';
+                ctx.fillText('Time (s)', width - 20, height/2 - 5);
+                
+                if (this.timePoints.length > 1) {
+                    const timeScale = (width - 60) / Math.max(2, Math.max(...this.timePoints));
+                    const velocityScale = (height/2 - 20) / Math.max(
+                        5,
+                        Math.max(...this.vxPoints.map(Math.abs)),
+                        Math.max(...this.vyPoints.map(Math.abs))
+                    );
+                    
+                    // Draw Vx line
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#2196F3';
+                    ctx.lineWidth = 2;
+                    this.timePoints.forEach((t, i) => {
+                        const x = 50 + t * timeScale;
+                        const y = height/2 - this.vxPoints[i] * velocityScale;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    });
+                    ctx.stroke();
+                    
+                    // Draw Vy line
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#FF5722';
+                    ctx.lineWidth = 2;
+                    this.timePoints.forEach((t, i) => {
+                        const x = 50 + t * timeScale;
+                        const y = height/2 - this.vyPoints[i] * velocityScale;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    });
+                    ctx.stroke();
+                    
+                    // Add legend
+                    ctx.fillStyle = '#2196F3';
+                    ctx.fillRect(width - 80, 10, 15, 10);
+                    ctx.fillStyle = '#FF5722';
+                    ctx.fillRect(width - 80, 25, 15, 10);
+                    ctx.fillStyle = '#666';
+                    ctx.textAlign = 'left';
+                    ctx.fillText('Vx', width - 60, 18);
+                    ctx.fillText('Vy', width - 60, 33);
+                }
+            }
+
+            drawEnergyGraph() {
+                const ctx = this.energyGraphCtx;
+                const width = this.energyGraphCanvas.width;
+                const height = this.energyGraphCanvas.height;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Calculate energies
+                const mass = 1; // Using unit mass for simplicity
+                const vx = this.velocity * Math.cos(this.angle);
+                const vy = this.velocity * Math.sin(this.angle) - this.g * this.time;
+                const KE = 0.5 * mass * (vx * vx + vy * vy);
+                const h = (this.height - this.y - this.projectileRadius) / this.pixelsPerMeter;
+                const PE = mass * this.g * h;
+                const totalE = KE + PE;
+                
+                // Draw bars
+                const barWidth = 60;
+                const spacing = 40;
+                const maxHeight = height - 60;
+                const startX = width / 4;
+                
+                // Draw KE bar
+                ctx.fillStyle = '#FF9800';
+                const keHeight = (KE / totalE) * maxHeight;
+                ctx.fillRect(startX, height - keHeight - 30, barWidth, keHeight);
+                
+                // Draw PE bar
+                ctx.fillStyle = '#2196F3';
+                const peHeight = (PE / totalE) * maxHeight;
+                ctx.fillRect(startX + barWidth + spacing, height - peHeight - 30, barWidth, peHeight);
+                
+                // Draw total energy bar
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(startX + 2 * (barWidth + spacing), height - maxHeight - 30, barWidth, maxHeight);
+                
+                // Add labels
+                ctx.fillStyle = '#666';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`KE: ${KE.toFixed(1)}J`, startX + barWidth/2, height - 10);
+                ctx.fillText(`PE: ${PE.toFixed(1)}J`, startX + barWidth + spacing + barWidth/2, height - 10);
+                ctx.fillText(`E: ${totalE.toFixed(1)}J`, startX + 2 * (barWidth + spacing) + barWidth/2, height - 10);
+            }
+        }
+
+        const canvas = document.getElementById('canvas');
+        const projectile = new Projectile(canvas);
+
+        document.getElementById('launch').addEventListener('click', () => {
+            projectile.launch();
+        });
+
+        document.getElementById('reset').addEventListener('click', () => {
+            projectile.isPaused = false;
+            document.getElementById('pauseResume').textContent = 'Pause';
+            document.getElementById('pauseResume').style.backgroundColor = '#f44336';
+            projectile.reset();
+        });
+
+        document.getElementById('angle').addEventListener('input', (e) => {
+            document.getElementById('angleValue').textContent = `${e.target.value}°`;
+            projectile.reset(); // Reset to update scale
+        });
+
+        document.getElementById('velocity').addEventListener('input', (e) => {
+            document.getElementById('velocityValue').textContent = `${e.target.value} m/s`;
+            projectile.reset(); // Reset to update scale
+        });
+
+        document.getElementById('pauseResume').addEventListener('click', (e) => {
+            projectile.togglePause();
+            e.target.textContent = projectile.isPaused ? 'Resume' : 'Pause';
+            e.target.style.backgroundColor = projectile.isPaused ? '#4CAF50' : '#f44336';
+        });
+    </script>
+</body>
+</html> 

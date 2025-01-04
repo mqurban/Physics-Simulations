@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Harmonic Motion Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .simulation-container {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+            gap: 20px;
+            max-width: 100%;
+            margin: 0 auto;
+            overflow-x: hidden;
+            padding: 0 20px;
+        }
+        @media (max-width: 768px) {
+            .simulation-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        .canvas-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .parameter-display {
+            font-family: monospace;
+            margin-left: 10px;
+            color: #666;
+        }
+        #realTimeData {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-family: monospace;
+        }
+        .control-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.pause {
+            background-color: #f44336;
+        }
+        button.reset {
+            background-color: #2196F3;
+        }
+        button.export {
+            background-color: #FF9800;
+        }
+        button.toggle {
+            background-color: #9C27B0;
+        }
+        button.toggle:hover {
+            background-color: #7B1FA2;
+        }
+        #canvas {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .graphs-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .graph-wrapper {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 95%;
+        }
+        .graph-title {
+            text-align: center;
+            margin-top: 5px;
+            font-weight: bold;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+        .home-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="simulation-container">
+        <div class="canvas-container">
+            <a href="index.html" class="home-link">← Back to Home</a>
+            <canvas id="canvas" width="800" height="400"></canvas>
+            <div class="graphs-container">
+                <div class="graph-wrapper">
+                    <canvas id="phaseSpaceCanvas" width="350" height="250"></canvas>
+                    <div class="graph-title">Phase Space Plot (x vs v)</div>
+                </div>
+                <div class="graph-wrapper">
+                    <canvas id="energyCanvas" width="350" height="250"></canvas>
+                    <div class="graph-title">Energy Distribution</div>
+                </div>
+            </div>
+            <div id="realTimeData">
+                <div class="data-row">
+                    <span>Time:</span>
+                    <span id="timeDisplay">0.00 s</span>
+                </div>
+                <div class="data-row">
+                    <span>Position:</span>
+                    <span id="positionDisplay">0.00 m</span>
+                </div>
+                <div class="data-row">
+                    <span>Velocity:</span>
+                    <span id="velocityDisplay">0.00 m/s</span>
+                </div>
+                <div class="data-row">
+                    <span>Energy:</span>
+                    <span id="energyDisplay">0.00 J</span>
+                </div>
+                <div class="data-row">
+                    <span>Period:</span>
+                    <span id="periodDisplay">0.00 s</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-container">
+            <h2>SHM Controls</h2>
+            <div class="input-group">
+                <label for="amplitude">
+                    Amplitude (A)
+                    <span class="parameter-display" id="amplitudeValue">1.00 m</span>
+                </label>
+                <input type="range" id="amplitude" min="0.1" max="2" step="0.1" value="1">
+            </div>
+
+            <div class="input-group">
+                <label for="frequency">
+                    Angular Frequency (ω)
+                    <span class="parameter-display" id="frequencyValue">1.00 rad/s</span>
+                </label>
+                <input type="range" id="frequency" min="0.1" max="5" step="0.1" value="1">
+            </div>
+
+            <div class="input-group">
+                <label for="mass">
+                    Mass (m)
+                    <span class="parameter-display" id="massValue">1.00 kg</span>
+                </label>
+                <input type="range" id="mass" min="0.1" max="5" step="0.1" value="1">
+            </div>
+
+            <div class="input-group">
+                <label for="damping">
+                    Damping (γ)
+                    <span class="parameter-display" id="dampingValue">0.00</span>
+                </label>
+                <input type="range" id="damping" min="0" max="1" step="0.01" value="0">
+            </div>
+
+            <div class="control-buttons">
+                <button id="playPause">Pause</button>
+                <button id="reset" class="reset">Reset</button>
+                <button id="exportData" class="export">Export Data</button>
+                <button id="toggleCalc" class="toggle">Hide Values</button>
+            </div>
+
+            <div class="educational-content">
+                <div class="formulas-section">
+                    <h3>Key Formulas</h3>
+                    <div class="formula-grid">
+                        <div class="formula-card">
+                            <h4>Position (x)</h4>
+                            <div class="formula">x = A cos(ωt)</div>
+                            <div class="description">A is amplitude, ω is angular frequency</div>
+                        </div>
+                        <div class="formula-card">
+                            <h4>Period (T)</h4>
+                            <div class="formula">T = 2π/ω</div>
+                            <div class="description">Time for one complete oscillation</div>
+                        </div>
+                        <div class="formula-card">
+                            <h4>Total Energy (E)</h4>
+                            <div class="formula">E = ½kA² = ½mω²A²</div>
+                            <div class="description">k is spring constant, m is mass</div>
+                        </div>
+                        <div class="formula-card">
+                            <h4>Spring Force (F)</h4>
+                            <div class="formula">F = -kx</div>
+                            <div class="description">Hooke's Law</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Oscillator {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.width = canvas.width;
+                this.height = canvas.height;
+                this.centerX = this.width / 2;
+                this.centerY = this.height / 2;
+
+                // Physics parameters
+                this.amplitude = 1.0;  // meters
+                this.frequency = 1.0;  // rad/s
+                this.mass = 1.0;      // kg
+                this.damping = 0.0;   // damping coefficient
+                this.position = this.amplitude;
+                this.velocity = 0;
+                this.time = 0;
+                this.dt = 0.016;    // 60 FPS
+                this.isRunning = true;
+
+                // Drawing scale
+                this.pixelsPerMeter = 100;
+
+                // Data recording
+                this.dataPoints = [];
+                this.maxDataPoints = 200;
+
+                // Setup phase space canvas
+                this.phaseSpaceCanvas = document.getElementById('phaseSpaceCanvas');
+                this.phaseSpaceCtx = this.phaseSpaceCanvas.getContext('2d');
+                
+                // Setup energy canvas
+                this.energyCanvas = document.getElementById('energyCanvas');
+                this.energyCtx = this.energyCanvas.getContext('2d');
+
+                this.showCalculations = true;
+            }
+
+            update() {
+                if (this.isRunning) {
+                    // Update physics
+                    const acceleration = -this.frequency * this.frequency * this.position 
+                                       - this.damping * this.velocity;
+                    this.velocity += acceleration * this.dt;
+                    this.position += this.velocity * this.dt;
+                    this.time += this.dt;
+
+                    // Record data
+                    this.dataPoints.push({
+                        time: this.time,
+                        position: this.position,
+                        velocity: this.velocity
+                    });
+
+                    if (this.dataPoints.length > this.maxDataPoints) {
+                        this.dataPoints.shift();
+                    }
+                }
+
+                this.draw();
+                this.drawPhaseSpace();
+                this.drawEnergyGraph();
+                requestAnimationFrame(() => this.update());
+            }
+
+            draw() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+
+                // Draw background grid
+                this.drawGrid();
+
+                // Draw equilibrium line
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = '#ccc';
+                this.ctx.setLineDash([5, 5]);
+                this.ctx.moveTo(0, this.centerY);
+                this.ctx.lineTo(this.width, this.centerY);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+
+                // Draw spring
+                const x = this.centerX + this.position * this.pixelsPerMeter;
+                this.drawSpring(this.centerX - 100, x, this.centerY);
+
+                // Draw mass with 3D effect
+                const massRadius = 20 * Math.sqrt(this.mass);
+                
+                // Calculate energies
+                const KE = 0.5 * this.mass * this.velocity * this.velocity;
+                const PE = 0.5 * this.mass * this.frequency * this.frequency * this.position * this.position;
+                const totalE = KE + PE;
+
+                // Draw shadow
+                this.ctx.beginPath();
+                this.ctx.ellipse(x, this.centerY + massRadius + 5, massRadius, massRadius/3, 0, 0, 2 * Math.PI);
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                this.ctx.fill();
+
+                // Draw energy rings
+                this.ctx.beginPath();
+                this.ctx.arc(x, this.centerY, massRadius + 10 * (PE/totalE), 0, 2 * Math.PI);
+                this.ctx.fillStyle = `rgba(33, 150, 243, 0.3)`;
+                this.ctx.fill();
+
+                this.ctx.beginPath();
+                this.ctx.arc(x, this.centerY, massRadius + 10 * (KE/totalE), 0, 2 * Math.PI);
+                this.ctx.fillStyle = `rgba(255, 152, 0, 0.3)`;
+                this.ctx.fill();
+
+                // Draw mass with gradient
+                const gradient = this.ctx.createRadialGradient(
+                    x - massRadius/3, this.centerY - massRadius/3, massRadius/10,
+                    x, this.centerY, massRadius
+                );
+                gradient.addColorStop(0, '#66BB6A');
+                gradient.addColorStop(1, '#388E3C');
+
+                this.ctx.beginPath();
+                this.ctx.arc(x, this.centerY, massRadius, 0, 2 * Math.PI);
+                this.ctx.fillStyle = gradient;
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#1B5E20';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+
+                // Draw calculations if enabled
+                if (this.showCalculations) {
+                    const values = [
+                        { label: 'x', value: `${this.position.toFixed(2)} m` },
+                        { label: 'v', value: `${this.velocity.toFixed(2)} m/s` },
+                        { label: 'KE', value: `${KE.toFixed(1)} J` },
+                        { label: 'PE', value: `${PE.toFixed(1)} J` },
+                        { label: 'E', value: `${totalE.toFixed(1)} J` },
+                        { label: 'ω', value: `${this.frequency.toFixed(2)} rad/s` },
+                        { label: 'T', value: `${(2 * Math.PI / this.frequency).toFixed(2)} s` }
+                    ];
+
+                    const radius = massRadius + 40;
+                    values.forEach((item, i) => {
+                        const angle = (i / values.length) * 2 * Math.PI;
+                        const textX = x + radius * Math.cos(angle);
+                        const textY = this.centerY + radius * Math.sin(angle);
+                        
+                        const text = `${item.label}: ${item.value}`;
+                        const metrics = this.ctx.measureText(text);
+                        const padding = 2;
+                        
+                        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                        this.ctx.fillRect(
+                            textX - padding, 
+                            textY - 12 - padding,
+                            metrics.width + 2 * padding,
+                            16 + 2 * padding
+                        );
+                        
+                        this.ctx.fillStyle = '#000';
+                        this.ctx.fillText(text, textX, textY);
+                    });
+                }
+
+                // Update displays
+                document.getElementById('timeDisplay').textContent = `${this.time.toFixed(2)} s`;
+                document.getElementById('positionDisplay').textContent = `${this.position.toFixed(2)} m`;
+                document.getElementById('velocityDisplay').textContent = `${this.velocity.toFixed(2)} m/s`;
+                document.getElementById('energyDisplay').textContent = `${totalE.toFixed(2)} J`;
+                document.getElementById('periodDisplay').textContent = 
+                    `${(2 * Math.PI / this.frequency).toFixed(2)} s`;
+            }
+
+            drawSpring(x1, x2, y) {
+                const segments = 40; // Increase segments for smoother spring
+                const springHeight = 20; // Base spring height
+                const compression = Math.abs(x2 - x1) / (this.centerX + this.amplitude * this.pixelsPerMeter - (this.centerX - 100));
+                const dynamicHeight = springHeight * (1 + (1 - compression) * 0.5); // Spring stretches vertically when compressed
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(x1, y);
+                
+                // Draw spring coils
+                for (let i = 0; i <= segments; i++) {
+                    const x = x1 + (x2 - x1) * (i / segments);
+                    const phase = (i / segments) * 4 * Math.PI;
+                    const yOffset = dynamicHeight * Math.sin(phase);
+                    
+                    // Add more detail to spring
+                    if (i === 0) {
+                        this.ctx.moveTo(x, y);
+                    } else {
+                        this.ctx.lineTo(x, y + yOffset);
+                    }
+                }
+                
+                this.ctx.strokeStyle = '#1976D2'; // Darker blue for spring
+                this.ctx.lineWidth = 3;
+                this.ctx.stroke();
+
+                // Draw fixed point (wall)
+                this.ctx.fillStyle = '#455A64';
+                this.ctx.fillRect(x1 - 10, y - 40, 20, 80);
+                this.ctx.strokeStyle = '#263238';
+                this.ctx.strokeRect(x1 - 10, y - 40, 20, 80);
+
+                // Draw mounting points
+                this.ctx.beginPath();
+                this.ctx.arc(x1, y, 5, 0, 2 * Math.PI);
+                this.ctx.fillStyle = '#455A64';
+                this.ctx.fill();
+                this.ctx.stroke();
+            }
+
+            toggleCalculations() {
+                this.showCalculations = !this.showCalculations;
+            }
+
+            drawPhaseSpace() {
+                const ctx = this.phaseSpaceCtx;
+                const width = this.phaseSpaceCanvas.width;
+                const height = this.phaseSpaceCanvas.height;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Draw axes
+                ctx.beginPath();
+                ctx.strokeStyle = '#ccc';
+                ctx.lineWidth = 1;
+                ctx.moveTo(0, centerY);
+                ctx.lineTo(width, centerY);
+                ctx.moveTo(centerX, 0);
+                ctx.lineTo(centerX, height);
+                ctx.stroke();
+                
+                // Draw phase space trajectory
+                if (this.dataPoints.length > 1) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#2196F3';
+                    ctx.lineWidth = 2;
+                    
+                    const scaleX = width / (4 * this.amplitude); // Scale based on amplitude
+                    const scaleY = height / (4 * this.amplitude * this.frequency); // Scale for velocity
+                    
+                    this.dataPoints.forEach((point, i) => {
+                        const x = centerX + point.position * scaleX;
+                        const y = centerY - point.velocity * scaleY;
+                        
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    });
+                    ctx.stroke();
+                }
+            }
+
+            drawEnergyGraph() {
+                const ctx = this.energyCtx;
+                const width = this.energyCanvas.width;
+                const height = this.energyCanvas.height;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Calculate energies
+                const KE = 0.5 * this.mass * this.velocity * this.velocity;
+                const PE = 0.5 * this.mass * this.frequency * this.frequency * this.position * this.position;
+                const totalE = KE + PE;
+                
+                // Draw bars
+                const barWidth = 60;
+                const spacing = 40;
+                const maxHeight = height - 60;
+                const startX = width / 4;
+                
+                // Kinetic Energy
+                const keHeight = (KE / totalE) * maxHeight;
+                ctx.fillStyle = '#FF9800';
+                ctx.fillRect(startX, height - keHeight - 30, barWidth, keHeight);
+                
+                // Potential Energy
+                const peHeight = (PE / totalE) * maxHeight;
+                ctx.fillStyle = '#2196F3';
+                ctx.fillRect(startX + barWidth + spacing, height - peHeight - 30, barWidth, peHeight);
+                
+                // Total Energy
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(startX + 2 * (barWidth + spacing), height - maxHeight - 30, barWidth, maxHeight);
+                
+                // Labels
+                ctx.fillStyle = '#333';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`KE: ${KE.toFixed(2)}J`, startX + barWidth/2, height - 10);
+                ctx.fillText(`PE: ${PE.toFixed(2)}J`, startX + barWidth + spacing + barWidth/2, height - 10);
+                ctx.fillText(`E: ${totalE.toFixed(2)}J`, startX + 2 * (barWidth + spacing) + barWidth/2, height - 10);
+            }
+
+            drawGrid() {
+                const gridSize = 50;
+                this.ctx.strokeStyle = '#f0f0f0';
+                this.ctx.lineWidth = 1;
+
+                // Draw vertical lines
+                for (let x = 0; x < this.width; x += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.height);
+                    this.ctx.stroke();
+                }
+
+                // Draw horizontal lines
+                for (let y = 0; y < this.height; y += gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.width, y);
+                    this.ctx.stroke();
+                }
+            }
+        }
+
+        // Initialize simulation
+        const canvas = document.getElementById('canvas');
+        const oscillator = new Oscillator(canvas);
+        oscillator.update();
+
+        // Control handlers
+        document.getElementById('amplitude').addEventListener('input', (e) => {
+            const newAmplitude = parseFloat(e.target.value);
+            oscillator.position = newAmplitude * (oscillator.position / oscillator.amplitude);
+            oscillator.amplitude = newAmplitude;
+            document.getElementById('amplitudeValue').textContent = 
+                `${oscillator.amplitude.toFixed(2)} m`;
+        });
+
+        document.getElementById('frequency').addEventListener('input', (e) => {
+            oscillator.frequency = parseFloat(e.target.value);
+            document.getElementById('frequencyValue').textContent = 
+                `${oscillator.frequency.toFixed(2)} rad/s`;
+        });
+
+        document.getElementById('mass').addEventListener('input', (e) => {
+            oscillator.mass = parseFloat(e.target.value);
+            document.getElementById('massValue').textContent = 
+                `${oscillator.mass.toFixed(2)} kg`;
+        });
+
+        document.getElementById('damping').addEventListener('input', (e) => {
+            oscillator.damping = parseFloat(e.target.value);
+            document.getElementById('dampingValue').textContent = 
+                oscillator.damping.toFixed(2);
+        });
+
+        document.getElementById('playPause').addEventListener('click', (e) => {
+            oscillator.isRunning = !oscillator.isRunning;
+            e.target.textContent = oscillator.isRunning ? 'Pause' : 'Play';
+            e.target.classList.toggle('pause', oscillator.isRunning);
+        });
+
+        document.getElementById('reset').addEventListener('click', () => {
+            oscillator.position = oscillator.amplitude;
+            oscillator.velocity = 0;
+            oscillator.time = 0;
+            oscillator.dataPoints = [];
+        });
+
+        document.getElementById('toggleCalc').addEventListener('click', (e) => {
+            oscillator.toggleCalculations();
+            e.target.textContent = oscillator.showCalculations ? 'Hide Values' : 'Show Values';
+        });
+
+        document.getElementById('exportData').addEventListener('click', () => {
+            const headers = ['Time (s)', 'Position (m)', 'Velocity (m/s)', 'KE (J)', 'PE (J)', 'Total E (J)'];
+            const data = oscillator.dataPoints.map(point => {
+                const KE = 0.5 * oscillator.mass * point.velocity * point.velocity;
+                const PE = 0.5 * oscillator.mass * oscillator.frequency * oscillator.frequency * point.position * point.position;
+                return [
+                    point.time.toFixed(3),
+                    point.position.toFixed(3),
+                    point.velocity.toFixed(3),
+                    KE.toFixed(3),
+                    PE.toFixed(3),
+                    (KE + PE).toFixed(3)
+                ];
+            });
+
+            const csv = [
+                headers.join(','),
+                ...data.map(row => row.join(','))
+            ].join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', `shm_data_${timestamp}.csv`);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html> 

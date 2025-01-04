@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pendulum Simulation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .simulation-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .canvas-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .controls-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .parameter-display {
+            font-family: monospace;
+            margin-left: 10px;
+            color: #666;
+        }
+        #realTimeData {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-family: monospace;
+        }
+        .control-buttons {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #4CAF50;
+            color: white;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.pause {
+            background-color: #f44336;
+        }
+        button.reset {
+            background-color: #2196F3;
+        }
+        button.export {
+            background-color: #FF9800;
+        }
+        button.toggle {
+            background-color: #9C27B0;
+        }
+        button.toggle:hover {
+            background-color: #7B1FA2;
+        }
+        #canvas {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .home-link {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 8px 16px;
+            background-color: #2196F3;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="simulation-container">
+        <div class="canvas-container">
+            <a href="index.html" class="home-link">← Back to Home</a>
+            <canvas id="canvas" width="800" height="600"></canvas>
+            <div class="graphs-container">
+                <div id="realTimeData">
+                    <div class="data-row">
+                        <span>Time:</span>
+                        <span id="timeDisplay">0.00 s</span>
+                    </div>
+                    <div class="data-row">
+                        <span>Angle:</span>
+                        <span id="angleDisplay">0.00°</span>
+                    </div>
+                    <div class="data-row">
+                        <span>Angular Velocity:</span>
+                        <span id="velocityDisplay">0.00 rad/s</span>
+                    </div>
+                    <div class="data-row">
+                        <span>Energy:</span>
+                        <span id="energyDisplay">0.00 J</span>
+                    </div>
+                    <div class="data-row">
+                        <span>Period:</span>
+                        <span id="periodDisplay">0.00 s</span>
+                    </div>
+                </div>
+                <div class="graph-wrapper">
+                    <canvas id="phaseSpaceCanvas" width="400" height="300"></canvas>
+                    <div class="graph-title">Phase Space Plot (θ vs ω)</div>
+                </div>
+                <div class="graph-wrapper">
+                    <canvas id="energyCanvas" width="400" height="300"></canvas>
+                    <div class="graph-title">Energy Distribution</div>
+                </div>
+            </div>
+            
+        </div>
+
+        <div class="controls-container">
+            <h2>Pendulum Controls</h2>
+            <div class="input-group">
+                <label for="length">
+                    Length (L)
+                    <span class="parameter-display" id="lengthValue">1.00 m</span>
+                </label>
+                <input type="range" id="length" min="0.1" max="2" step="0.1" value="1">
+            </div>
+
+            <div class="input-group">
+                <label for="mass">
+                    Mass (m)
+                    <span class="parameter-display" id="massValue">1.00 kg</span>
+                </label>
+                <input type="range" id="mass" min="0.1" max="5" step="0.1" value="1">
+            </div>
+
+            <div class="input-group">
+                <label for="angle">
+                    Initial Angle (θ)
+                    <span class="parameter-display" id="angleValue">45.00°</span>
+                </label>
+                <input type="range" id="angle" min="-90" max="90" step="1" value="45">
+            </div>
+
+            <div class="input-group">
+                <label for="pendulumType">Pendulum Type</label>
+                <select id="pendulumType">
+                    <option value="single">Single Pendulum</option>
+                    <option value="double">Double Pendulum</option>
+                </select>
+            </div>
+
+            <div id="doublePendulumControls" style="display: none;">
+                <div class="input-group">
+                    <label for="length2">
+                        Length (L₂)
+                        <span class="parameter-display" id="length2Value">1.00 m</span>
+                    </label>
+                    <input type="range" id="length2" min="0.1" max="2" step="0.1" value="1">
+                </div>
+
+                <div class="input-group">
+                    <label for="mass2">
+                        Mass (m₂)
+                        <span class="parameter-display" id="mass2Value">1.00 kg</span>
+                    </label>
+                    <input type="range" id="mass2" min="0.1" max="5" step="0.1" value="1">
+                </div>
+
+                <div class="input-group">
+                    <label for="angle2">
+                        Initial Angle (θ₂)
+                        <span class="parameter-display" id="angle2Value">0.00°</span>
+                    </label>
+                    <input type="range" id="angle2" min="-90" max="90" step="1" value="0">
+                </div>
+            </div>
+
+            <div class="control-buttons">
+                <button id="playPause">Pause</button>
+                <button id="reset" class="reset">Reset</button>
+                <button id="exportData" class="export">Export Data</button>
+                <button id="toggleCalc" class="toggle">Hide Values</button>
+            </div>
+
+            <div class="educational-content">
+                <div class="formulas-section">
+                    <h3>Key Formulas</h3>
+                    <div class="formula-grid">
+                        <div class="formula-card">
+                            <h4>Period (T)</h4>
+                            <div class="formula">T = 2π√(L/g)</div>
+                            <div class="description">For small angles where L is length and g is gravitational acceleration</div>
+                        </div>
+                        <div class="formula-card">
+                            <h4>Angular Frequency (ω)</h4>
+                            <div class="formula">ω = √(g/L)</div>
+                            <div class="description">Natural frequency of oscillation</div>
+                        </div>
+                        <div class="formula-card">
+                            <h4>Total Energy (E)</h4>
+                            <div class="formula">E = ½mv² + mgh</div>
+                            <div class="description">Sum of kinetic and potential energy</div>
+                        </div>
+                        <div class="formula-card">
+                            <h4>Maximum Speed</h4>
+                            <div class="formula">vₘₐₓ = √(2gh)</div>
+                            <div class="description">Speed at lowest point</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Pendulum {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.width = canvas.width;
+                this.height = canvas.height;
+                this.centerX = this.width / 2;
+                this.centerY = this.height / 4;
+
+                // Physics parameters
+                this.g = 9.81;  // gravitational acceleration
+                this.length = 1.0;  // meters
+                this.mass = 1.0;    // kg
+                this.theta = 45 * Math.PI / 180;  // radians
+                this.omega = 0;     // angular velocity
+                this.time = 0;
+                this.dt = 0.016;    // 60 FPS
+                this.isRunning = true;
+
+                // Drawing scale
+                this.pixelsPerMeter = 200;
+
+                // Data recording
+                this.dataPoints = [];
+                this.lastPeakTime = 0;
+                this.lastTheta = 0;
+
+                // Double pendulum parameters
+                this.type = 'single';
+                this.length2 = 1.0;
+                this.mass2 = 1.0;
+                this.theta2 = 0;
+                this.omega2 = 0;
+
+                // Setup phase space canvas
+                this.phaseSpaceCanvas = document.getElementById('phaseSpaceCanvas');
+                this.phaseSpaceCtx = this.phaseSpaceCanvas.getContext('2d');
+                
+                // Setup energy canvas
+                this.energyCanvas = document.getElementById('energyCanvas');
+                this.energyCtx = this.energyCanvas.getContext('2d');
+
+                this.showCalculations = true;  // New property to track visibility
+            }
+
+            calculateDoublePendulum() {
+                const g = this.g;
+                const m1 = this.mass;
+                const m2 = this.mass2;
+                const l1 = this.length;
+                const l2 = this.length2;
+                const t1 = this.theta;
+                const t2 = this.theta2;
+                const w1 = this.omega;
+                const w2 = this.omega2;
+
+                // Double pendulum equations of motion
+                const num1 = -g * (2 * m1 + m2) * Math.sin(t1);
+                const num2 = -m2 * g * Math.sin(t1 - 2 * t2);
+                const num3 = -2 * Math.sin(t1 - t2) * m2;
+                const num4 = w2 * w2 * l2 + w1 * w1 * l1 * Math.cos(t1 - t2);
+                const den = l1 * (2 * m1 + m2 - m2 * Math.cos(2 * t1 - 2 * t2));
+                const alpha1 = (num1 + num2 + num3 * num4) / den;
+
+                const num5 = 2 * Math.sin(t1 - t2);
+                const num6 = w1 * w1 * l1 * (m1 + m2);
+                const num7 = g * (m1 + m2) * Math.cos(t1);
+                const num8 = w2 * w2 * l2 * m2 * Math.cos(t1 - t2);
+                const den2 = l2 * (2 * m1 + m2 - m2 * Math.cos(2 * t1 - 2 * t2));
+                const alpha2 = num5 * (num6 + num7 + num8) / den2;
+
+                this.omega += alpha1 * this.dt;
+                this.omega2 += alpha2 * this.dt;
+                this.theta += this.omega * this.dt;
+                this.theta2 += this.omega2 * this.dt;
+            }
+
+            drawPhaseSpace() {
+                const ctx = this.phaseSpaceCtx;
+                const width = this.phaseSpaceCanvas.width;
+                const height = this.phaseSpaceCanvas.height;
+                const centerX = width / 2;
+                const centerY = height / 2;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Draw axes
+                ctx.beginPath();
+                ctx.strokeStyle = '#ccc';
+                ctx.lineWidth = 1;
+                ctx.moveTo(0, centerY);
+                ctx.lineTo(width, centerY);
+                ctx.moveTo(centerX, 0);
+                ctx.lineTo(centerX, height);
+                ctx.stroke();
+                
+                // Add axes labels
+                ctx.fillStyle = '#666';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('θ (rad)', width - 20, centerY - 5);
+                ctx.fillText('ω (rad/s)', centerX - 5, 15);
+                
+                // Draw phase space trajectory with better scaling
+                if (this.dataPoints.length > 1) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = '#2196F3';
+                    ctx.lineWidth = 2;
+                    
+                    const scaleX = width / (4 * Math.PI); // Scale for ±2π range
+                    const scaleY = height / 10; // Scale for ±5 rad/s range
+                    
+                    this.dataPoints.forEach((point, i) => {
+                        const x = centerX + point.theta * scaleX;
+                        const y = centerY - point.omega * scaleY;
+                        
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    });
+                    
+                    ctx.stroke();
+                }
+            }
+
+            drawEnergyGraph() {
+                const ctx = this.energyCtx;
+                const width = this.energyCanvas.width;
+                const height = this.energyCanvas.height;
+                
+                // Clear canvas
+                ctx.clearRect(0, 0, width, height);
+                
+                // Calculate energies
+                let KE, PE;
+                if (this.type === 'single') {
+                    KE = 0.5 * this.mass * (this.length * this.omega) ** 2;
+                    PE = this.mass * this.g * this.length * (1 - Math.cos(this.theta));
+                } else {
+                    const v1 = this.length * this.omega;
+                    const v2 = this.length2 * this.omega2;
+                    KE = 0.5 * this.mass * v1 * v1 + 0.5 * this.mass2 * v2 * v2;
+                    const h1 = this.length * (1 - Math.cos(this.theta));
+                    const h2 = h1 + this.length2 * (1 - Math.cos(this.theta2));
+                    PE = this.mass * this.g * h1 + this.mass2 * this.g * h2;
+                }
+                const total = KE + PE;
+                
+                // Draw bars
+                const barWidth = 60;
+                const spacing = 40;
+                const maxHeight = height - 60;
+                const startX = width / 4;
+                
+                // Kinetic Energy
+                const keHeight = (KE / total) * maxHeight;
+                ctx.fillStyle = '#FF9800';
+                ctx.fillRect(startX, height - keHeight - 30, barWidth, keHeight);
+                
+                // Potential Energy
+                const peHeight = (PE / total) * maxHeight;
+                ctx.fillStyle = '#2196F3';
+                ctx.fillRect(startX + barWidth + spacing, height - peHeight - 30, barWidth, peHeight);
+                
+                // Total Energy
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillRect(startX + 2 * (barWidth + spacing), height - maxHeight - 30, barWidth, maxHeight);
+                
+                // Labels and values
+                ctx.fillStyle = '#333';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(`KE: ${KE.toFixed(2)}J`, startX + barWidth/2, height - 10);
+                ctx.fillText(`PE: ${PE.toFixed(2)}J`, startX + barWidth + spacing + barWidth/2, height - 10);
+                ctx.fillText(`E: ${total.toFixed(2)}J`, startX + 2 * (barWidth + spacing) + barWidth/2, height - 10);
+            }
+
+            update() {
+                if (this.isRunning) {
+                    if (this.type === 'single') {
+                        const alpha = -this.g / this.length * Math.sin(this.theta);
+                        this.omega += alpha * this.dt;
+                        this.theta += this.omega * this.dt;
+                    } else {
+                        this.calculateDoublePendulum();
+                    }
+                    this.time += this.dt;
+                    
+                    // Record data
+                    this.dataPoints.push({
+                        time: this.time,
+                        theta: this.theta,
+                        omega: this.omega,
+                        theta2: this.theta2,
+                        omega2: this.omega2
+                    });
+                    
+                    if (this.dataPoints.length > 200) {
+                        this.dataPoints.shift();
+                    }
+                }
+
+                this.draw();
+                this.drawPhaseSpace();
+                this.drawEnergyGraph();
+                requestAnimationFrame(() => this.update());
+            }
+
+            draw() {
+                // Clear canvas
+                this.ctx.clearRect(0, 0, this.width, this.height);
+
+                // Draw pivot point
+                this.ctx.beginPath();
+                this.ctx.arc(this.centerX, this.centerY, 5, 0, 2 * Math.PI);
+                this.ctx.fillStyle = '#333';
+                this.ctx.fill();
+
+                // Calculate positions and energies
+                const x = this.centerX + this.length * this.pixelsPerMeter * Math.sin(this.theta);
+                const y = this.centerY + this.length * this.pixelsPerMeter * Math.cos(this.theta);
+                
+                // Calculate all physical quantities
+                const KE = 0.5 * this.mass * (this.length * this.omega) ** 2;
+                const h = this.length * (1 - Math.cos(this.theta));
+                const PE = this.mass * this.g * h;
+                const totalE = KE + PE;
+                const velocity = this.length * this.omega;
+                const frequency = Math.sqrt(this.g / this.length) / (2 * Math.PI);
+                const period = 1 / frequency;
+                
+                // Draw rod
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.centerX, this.centerY);
+                this.ctx.lineTo(x, y);
+                this.ctx.strokeStyle = '#2196F3';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+
+                // Draw energy rings around bob
+                const baseRadius = 20 * Math.sqrt(this.mass);
+                
+                // Potential Energy Ring (Blue)
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, baseRadius + 10 * (PE/totalE), 0, 2 * Math.PI);
+                this.ctx.fillStyle = `rgba(33, 150, 243, 0.3)`;
+                this.ctx.fill();
+
+                // Kinetic Energy Ring (Orange)
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, baseRadius + 10 * (KE/totalE), 0, 2 * Math.PI);
+                this.ctx.fillStyle = `rgba(255, 152, 0, 0.3)`;
+                this.ctx.fill();
+
+                // Draw bob
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, baseRadius, 0, 2 * Math.PI);
+                this.ctx.fillStyle = '#4CAF50';
+                this.ctx.fill();
+                this.ctx.strokeStyle = '#388E3C';
+                this.ctx.stroke();
+
+                // Draw live calculations around the bob
+                this.ctx.font = '12px Arial';
+                this.ctx.textAlign = 'left';
+                this.ctx.fillStyle = '#000';
+                
+                if (this.showCalculations) {
+                // Position values in a circular pattern around the bob
+                const radius = baseRadius + 40;
+                const values = [
+                    { label: 'θ', value: `${(this.theta * 180 / Math.PI).toFixed(1)}°` },
+                    { label: 'ω', value: `${this.omega.toFixed(2)} rad/s` },
+                    { label: 'v', value: `${velocity.toFixed(2)} m/s` },
+                    { label: 'KE', value: `${KE.toFixed(1)} J` },
+                    { label: 'PE', value: `${PE.toFixed(1)} J` },
+                    { label: 'E', value: `${totalE.toFixed(1)} J` },
+                    { label: 'f', value: `${frequency.toFixed(2)} Hz` },
+                    { label: 'T', value: `${period.toFixed(2)} s` }
+                ];
+
+                values.forEach((item, i) => {
+                    const angle = (i / values.length) * 2 * Math.PI;
+                    const textX = x + radius * Math.cos(angle);
+                    const textY = y + radius * Math.sin(angle);
+                    
+                    // Draw background for better readability
+                    const text = `${item.label}: ${item.value}`;
+                    const metrics = this.ctx.measureText(text);
+                    const padding = 2;
+                    
+                    this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    this.ctx.fillRect(
+                        textX - padding, 
+                        textY - 12 - padding,
+                        metrics.width + 2 * padding,
+                        16 + 2 * padding
+                    );
+                    
+                    // Draw text
+                    this.ctx.fillStyle = '#000';
+                    this.ctx.fillText(text, textX, textY);
+                });
+                }
+
+                // Draw velocity vector
+                if (Math.abs(this.omega) > 0.01) {
+                    const vectorLength = 30 * Math.min(Math.abs(this.omega), 2);
+                    const vectorAngle = this.theta + Math.PI/2 * Math.sign(this.omega);
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, y);
+                    this.ctx.lineTo(
+                        x + vectorLength * Math.cos(vectorAngle),
+                        y + vectorLength * Math.sin(vectorAngle)
+                    );
+                    this.ctx.strokeStyle = '#FF5722';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
+                    
+                    // Draw arrowhead
+                    const arrowSize = 8;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(
+                        x + vectorLength * Math.cos(vectorAngle),
+                        y + vectorLength * Math.sin(vectorAngle)
+                    );
+                    this.ctx.lineTo(
+                        x + (vectorLength - arrowSize) * Math.cos(vectorAngle) + arrowSize * Math.cos(vectorAngle + Math.PI*2/3),
+                        y + (vectorLength - arrowSize) * Math.sin(vectorAngle) + arrowSize * Math.sin(vectorAngle + Math.PI*2/3)
+                    );
+                    this.ctx.lineTo(
+                        x + (vectorLength - arrowSize) * Math.cos(vectorAngle) + arrowSize * Math.cos(vectorAngle - Math.PI*2/3),
+                        y + (vectorLength - arrowSize) * Math.sin(vectorAngle) + arrowSize * Math.sin(vectorAngle - Math.PI*2/3)
+                    );
+                    this.ctx.closePath();
+                    this.ctx.fillStyle = '#FF5722';
+                    this.ctx.fill();
+                }
+
+                // Update displays
+                document.getElementById('timeDisplay').textContent = 
+                    `${this.time.toFixed(2)} s`;
+                document.getElementById('angleDisplay').textContent = 
+                    `${(this.theta * 180 / Math.PI).toFixed(2)}°`;
+                document.getElementById('velocityDisplay').textContent = 
+                    `${this.omega.toFixed(2)} rad/s`;
+                
+                document.getElementById('energyDisplay').textContent = `${totalE.toFixed(2)} J`;
+
+                // Add double pendulum drawing
+                if (this.type === 'double') {
+                    const x2 = x + this.length2 * this.pixelsPerMeter * Math.sin(this.theta2);
+                    const y2 = y + this.length2 * this.pixelsPerMeter * Math.cos(this.theta2);
+                    
+                    // Draw connecting rod between bobs
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, y);
+                    this.ctx.lineTo(x2, y2);
+                    this.ctx.strokeStyle = '#2196F3';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.stroke();
+
+                    // Calculate second pendulum's physical quantities
+                    const velocity2 = this.length2 * this.omega2;
+                    const h2 = this.length * (1 - Math.cos(this.theta)) + 
+                               this.length2 * (1 - Math.cos(this.theta2));
+                    const KE2 = 0.5 * this.mass2 * velocity2 * velocity2;
+                    const PE2 = this.mass2 * this.g * h2;
+                    const totalE2 = KE2 + PE2;
+                    
+                    // Draw energy rings for second bob
+                    const baseRadius2 = 20 * Math.sqrt(this.mass2);
+                    
+                    // Potential Energy Ring (Blue)
+                    this.ctx.beginPath();
+                    this.ctx.arc(x2, y2, baseRadius2 + 10 * (PE2/totalE2), 0, 2 * Math.PI);
+                    this.ctx.fillStyle = `rgba(33, 150, 243, 0.3)`;
+                    this.ctx.fill();
+
+                    // Kinetic Energy Ring (Orange)
+                    this.ctx.beginPath();
+                    this.ctx.arc(x2, y2, baseRadius2 + 10 * (KE2/totalE2), 0, 2 * Math.PI);
+                    this.ctx.fillStyle = `rgba(255, 152, 0, 0.3)`;
+                    this.ctx.fill();
+
+                    // Draw second bob
+                    this.ctx.beginPath();
+                    this.ctx.arc(x2, y2, baseRadius2, 0, 2 * Math.PI);
+                    this.ctx.fillStyle = '#4CAF50';
+                    this.ctx.fill();
+                    this.ctx.strokeStyle = '#388E3C';
+                    this.ctx.stroke();
+
+                    // Draw calculations around second bob
+                    if (this.showCalculations) {
+                    const values2 = [
+                        { label: 'θ₂', value: `${(this.theta2 * 180 / Math.PI).toFixed(1)}°` },
+                        { label: 'ω₂', value: `${this.omega2.toFixed(2)} rad/s` },
+                        { label: 'v₂', value: `${velocity2.toFixed(2)} m/s` },
+                        { label: 'KE₂', value: `${KE2.toFixed(1)} J` },
+                        { label: 'PE₂', value: `${PE2.toFixed(1)} J` },
+                        { label: 'E₂', value: `${totalE2.toFixed(1)} J` }
+                    ];
+
+                    const radius2 = baseRadius2 + 40;
+                    values2.forEach((item, i) => {
+                        const angle = (i / values2.length) * 2 * Math.PI;
+                        const textX = x2 + radius2 * Math.cos(angle);
+                        const textY = y2 + radius2 * Math.sin(angle);
+                        
+                        // Draw background for better readability
+                        const text = `${item.label}: ${item.value}`;
+                        const metrics = this.ctx.measureText(text);
+                        const padding = 2;
+                        
+                        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                        this.ctx.fillRect(
+                            textX - padding, 
+                            textY - 12 - padding,
+                            metrics.width + 2 * padding,
+                            16 + 2 * padding
+                        );
+                        
+                        // Draw text
+                        this.ctx.fillStyle = '#000';
+                        this.ctx.fillText(text, textX, textY);
+                    });
+                    }
+
+                    // Draw velocity vector for second bob
+                    if (Math.abs(this.omega2) > 0.01) {
+                        const vectorLength = 30 * Math.min(Math.abs(this.omega2), 2);
+                        const vectorAngle = this.theta2 + Math.PI/2 * Math.sign(this.omega2);
+                        
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(x2, y2);
+                        this.ctx.lineTo(
+                            x2 + vectorLength * Math.cos(vectorAngle),
+                            y2 + vectorLength * Math.sin(vectorAngle)
+                        );
+                        this.ctx.strokeStyle = '#FF5722';
+                        this.ctx.lineWidth = 2;
+                        this.ctx.stroke();
+                        
+                        // Draw arrowhead
+                        const arrowSize = 8;
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(
+                            x2 + vectorLength * Math.cos(vectorAngle),
+                            y2 + vectorLength * Math.sin(vectorAngle)
+                        );
+                        this.ctx.lineTo(
+                            x2 + (vectorLength - arrowSize) * Math.cos(vectorAngle) + arrowSize * Math.cos(vectorAngle + Math.PI*2/3),
+                            y2 + (vectorLength - arrowSize) * Math.sin(vectorAngle) + arrowSize * Math.sin(vectorAngle + Math.PI*2/3)
+                        );
+                        this.ctx.lineTo(
+                            x2 + (vectorLength - arrowSize) * Math.cos(vectorAngle) + arrowSize * Math.cos(vectorAngle - Math.PI*2/3),
+                            y2 + (vectorLength - arrowSize) * Math.sin(vectorAngle) + arrowSize * Math.sin(vectorAngle - Math.PI*2/3)
+                        );
+                        this.ctx.closePath();
+                        this.ctx.fillStyle = '#FF5722';
+                        this.ctx.fill();
+                    }
+                }
+            }
+
+            reset() {
+                this.theta = document.getElementById('angle').value * Math.PI / 180;
+                this.omega = 0;
+                this.time = 0;
+                
+                if (this.type === 'double') {
+                    this.theta2 = document.getElementById('angle2').value * Math.PI / 180;
+                    this.omega2 = 0;
+                }
+                
+                this.dataPoints = [];
+                this.lastPeakTime = 0;
+                this.draw();
+                this.drawPhaseSpace();
+                this.drawEnergyGraph();
+            }
+
+            exportData() {
+                const headers = ['Time (s)', 'Angle 1 (degrees)', 'Angular Velocity 1 (rad/s)'];
+                const data = this.dataPoints.map(point => [
+                        point.time.toFixed(3),
+                        (point.theta * 180 / Math.PI).toFixed(3),
+                        point.omega.toFixed(3)
+                ]);
+
+                if (this.type === 'double') {
+                    headers.push('Angle 2 (degrees)', 'Angular Velocity 2 (rad/s)');
+                    data.forEach((row, i) => {
+                        row.push(
+                            (this.dataPoints[i].theta2 * 180 / Math.PI).toFixed(3),
+                            this.dataPoints[i].omega2.toFixed(3)
+                        );
+                    });
+                }
+
+                const csv = [
+                    headers,
+                    ...data
+                ].map(row => row.join(',')).join('\n');
+
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                a.setAttribute('hidden', '');
+                a.setAttribute('href', url);
+                a.setAttribute('download', `pendulum_data_${timestamp}.csv`);
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }
+
+            toggleCalculations() {
+                this.showCalculations = !this.showCalculations;
+            }
+        }
+
+        // Initialize simulation
+        const canvas = document.getElementById('canvas');
+        const pendulum = new Pendulum(canvas);
+        pendulum.update();
+
+        // Control handlers
+        document.getElementById('length').addEventListener('input', (e) => {
+            pendulum.length = parseFloat(e.target.value);
+            document.getElementById('lengthValue').textContent = 
+                `${pendulum.length.toFixed(2)} m`;
+        });
+
+        document.getElementById('mass').addEventListener('input', (e) => {
+            pendulum.mass = parseFloat(e.target.value);
+            document.getElementById('massValue').textContent = 
+                `${pendulum.mass.toFixed(2)} kg`;
+        });
+
+        document.getElementById('angle').addEventListener('input', (e) => {
+            pendulum.theta = parseFloat(e.target.value) * Math.PI / 180;
+            document.getElementById('angleValue').textContent = 
+                `${e.target.value}°`;
+        });
+
+        document.getElementById('playPause').addEventListener('click', (e) => {
+            pendulum.isRunning = !pendulum.isRunning;
+            e.target.textContent = pendulum.isRunning ? 'Pause' : 'Play';
+            e.target.classList.toggle('pause', pendulum.isRunning);
+        });
+
+        document.getElementById('reset').addEventListener('click', () => {
+            pendulum.reset();
+        });
+
+        document.getElementById('exportData').addEventListener('click', () => {
+            pendulum.exportData();
+        });
+
+        // Add event listener for pendulum type
+        document.getElementById('pendulumType').addEventListener('change', (e) => {
+            pendulum.type = e.target.value;
+            document.getElementById('doublePendulumControls').style.display = 
+                e.target.value === 'double' ? 'block' : 'none';
+            pendulum.reset();
+        });
+
+        // Add event listeners for double pendulum controls
+        document.getElementById('length2').addEventListener('input', (e) => {
+            pendulum.length2 = parseFloat(e.target.value);
+            document.getElementById('length2Value').textContent = 
+                `${pendulum.length2.toFixed(2)} m`;
+        });
+
+        document.getElementById('mass2').addEventListener('input', (e) => {
+            pendulum.mass2 = parseFloat(e.target.value);
+            document.getElementById('mass2Value').textContent = 
+                `${pendulum.mass2.toFixed(2)} kg`;
+        });
+
+        document.getElementById('angle2').addEventListener('input', (e) => {
+            pendulum.theta2 = parseFloat(e.target.value) * Math.PI / 180;
+            document.getElementById('angle2Value').textContent = 
+                `${e.target.value}°`;
+        });
+
+        document.getElementById('toggleCalc').addEventListener('click', (e) => {
+            pendulum.toggleCalculations();
+            e.target.textContent = pendulum.showCalculations ? 'Hide Values' : 'Show Values';
+        });
+    </script>
+</body>
+</html>
